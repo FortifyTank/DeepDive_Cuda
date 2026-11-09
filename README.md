@@ -6,7 +6,7 @@
 
 **Google Colab notebook:** https://colab.research.google.com/drive/1aB99_AnJZpkkZSQYR4ayNUfPiIx2kcsR?usp=sharing
 
-### Project specification (from our SIMD project)
+### Project specification (SIMD project)
 
 Compute the Euclidean norm of a double-precision vector `A` of length `n`:
 
@@ -16,10 +16,10 @@ $$Z = \sqrt{\sum_{i=0}^{n-1} A_i^2}$$
 |---|---|
 | Data type | `double` (8 bytes) |
 | Main vector size | n = 2²⁴ = 16,777,216 elements (128 MiB) |
-| Extra sizes | 2²⁰ (8 MiB) and 2²⁶ (512 MiB), the same sizes as our SIMD project |
-| Initialization | `A[i] = sin(i * 0.001)` (same as our SIMD project) |
+| Extra sizes | 2²⁰ (8 MiB) and 2²⁶ (512 MiB), SIMD project sizes|
+| Initialization | `A[i] = sin(i * 0.001)` (SIMD project) |
 | Expected answer (2²⁴) | Z = 2896.2749920235 |
-| Runs per kernel | 30 (avg, min and max reported; run 1 also reported separately) |
+| Runs per kernel | 30 (avg, min and max reported; run 1 also reported separately "cold start") |
 | CUDA block sizes | 256, 512, 1024 |
 | CUDA grid size (main runs) | number of SMs × resident blocks per SM = 160 / 80 / 40 blocks on a T4 |
 | CUDA grid size (comparison) | `(n + blockSize - 1) / blockSize` = maximum blocks, one element per thread |
@@ -30,10 +30,10 @@ $$Z = \sqrt{\sum_{i=0}^{n-1} A_i^2}$$
 | # | Version | Platform |
 |---|---|---|
 | 1 | C program (baseline and answer key) | Colab CPU (`gcc -O2`) |
-| 2 | CUDA grid-stride loop, Unified Memory, no prefetch, no page creation, no mem advise | Colab Tesla T4 |
-| 3 | CUDA grid-stride loop + prefetch (no page creation, no mem advise) | Colab Tesla T4 |
-| 4 | CUDA grid-stride loop + prefetch + page creation (no mem advise) | Colab Tesla T4 |
-| 5 | CUDA grid-stride loop + prefetch + page creation + mem advise | Colab Tesla T4 |
+| 2 | CUDA grid-stride loop, Unified Memory, no prefetch, no page creation, no mem advise | Colab T4 |
+| 3 | CUDA grid-stride loop + prefetch (no page creation, no mem advise) | Colab T4 |
+| 4 | CUDA grid-stride loop + prefetch + page creation (no mem advise) | Colab T4 |
+| 5 | CUDA grid-stride loop + prefetch + page creation + mem advise | Colab T4 |
 | — | C, x86-64, SIMD XMM, SIMD YMM (from our SIMD project) | Laptop CPU, Visual Studio, x64 Release |
 
 ### AI usage declaration
@@ -363,7 +363,7 @@ From slowest to fastest kernel time at 2²⁴: Colab C (31.3 ms) → x86-64 (23.
 
 ## v. Problems Encountered, Solutions and AHA Moments
 
-- **Our first grid-stride loop never looped.** In our first version we launched `(n + blockSize - 1) / blockSize` blocks, one thread per element, so `stride = n` and every thread ran the loop body once. The code was correct but did not really use a grid-stride loop, and 65,536 blocks each did their own reduction and `atomicAdd`. A teammate caught this when reviewing the notebook. **Solution:** launch only the blocks that fit on the GPU (SMs × resident blocks per SM, from `cudaOccupancyMaxActiveBlocksPerMultiprocessor`), so each thread loops over about 410 elements. The kernel got 2.8x faster (1.49 → 0.53 ms at block size 256) and went from about 90 GB/s to 255 GB/s. We kept the old launch as a comparison for guide question (a).
+- **Our first grid-stride loop never looped.** In our first version we launched `(n + blockSize - 1) / blockSize` blocks, one thread per element, so `stride = n` and every thread ran the loop body once. The code was correct but did not really use a grid-stride loop, and 65,536 blocks each did their own reduction and `atomicAdd`. Kane caught this when reviewing the notebook. **Solution:** launch only the blocks that fit on the GPU (SMs × resident blocks per SM, from `cudaOccupancyMaxActiveBlocksPerMultiprocessor`), so each thread loops over about 410 elements. The kernel got 2.8x faster (1.49 → 0.53 ms at block size 256) and went from about 90 GB/s to 255 GB/s. We kept the old launch as a comparison for guide question (a).
 - **The norm is a reduction, which is harder on a GPU.** A simple `*sum += A[i] * A[i]` in every thread is a race condition (lecture 4), and an `atomicAdd` for every element would serialize 16.7 million updates. **Solution:** each thread adds its elements in a register, each block adds its threads' values in shared memory, and only one `atomicAdd` per block goes to global memory.
 - **The lecture's prefetch and mem advise calls did not compile on Colab.** Colab uses CUDA 13.0, which changed `cudaMemPrefetchAsync` and `cudaMemAdvise` to take a `cudaMemLocation` instead of a device number. **Solution:** small wrapper functions that check `CUDART_VERSION` and use the right form, so the notebook works on CUDA 12 and 13.
 - **"Page creation" is not a CUDA function.** We had to decide what it means. We defined it as creating the pages directly in GPU memory by prefetching the empty buffer and then filling it with a GPU kernel. nsys confirmed it worked: 0 bytes copied from host to device.
