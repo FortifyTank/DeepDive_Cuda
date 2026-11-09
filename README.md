@@ -204,13 +204,13 @@ ncu profiled one `norm_kernel` launch (2²⁴, block size 256, 160 blocks) for e
 | Compute (SM) throughput | 67.5 – 67.9 % |
 | Achieved occupancy | about 100 % |
 
-The kernel keeps the GPU memory almost fully busy, so it is memory-bound: it runs about as fast as the T4 can read 128 MB. (ncu fixes the SM clock at 585 MHz, so its durations are a little longer than our benchmark times.)
+**NOTE: **The kernel keeps the GPU memory almost fully busy, so it is memory-bound: it runs about as fast as the T4 can read 128 MB. (ncu fixes the SM clock at 585 MHz, so its durations are a little longer than our benchmark times.)
 
 ---
 
 ## iii. Comparative Table of Execution Time (2²⁴ elements)
 
-Times are in milliseconds over 30 runs. The CUDA times are **kernel only**.
+Times are in milliseconds over 30 runs. The CUDA times are kernel only.
 
 ### Main table
 
@@ -236,7 +236,7 @@ Times are in milliseconds over 30 runs. The CUDA times are **kernel only**.
 
 CUDA rows use the main launch (blocks that fit on the GPU: 160 / 80 / 40 blocks).
 
-**Which C is the baseline?** The CUDA speedups are against the C program on the **same Colab machine** (31.26 ms). The x86-64, XMM and YMM speedups are against the C program on the **same laptop** (18.32 ms). Comparing each version with C on its own machine keeps the CPU hardware out of the comparison. A cross-platform comparison is further below.
+**Baseline C program** The CUDA speedups are against the C program on the same Colab machine (31.26 ms). The x86-64, XMM and YMM speedups are against the C program on the same laptop (18.32 ms). Comparing each version with C on its own machine keeps the CPU hardware out of the comparison.
 
 ### Run 1 vs the other 29 runs (block size 256)
 
@@ -269,7 +269,7 @@ CUDA rows use the main launch (blocks that fit on the GPU: 160 / 80 / 40 blocks)
 | CUDA Prefetch + page creation + mem advise | 0.0980 / 0.1228 / 0.1608 | 0.0404 / 0.0406 / 0.0414 | 6.8088 / 8.0556 / 9.9455 | **2.1094** / 2.1139 / 2.1289 |
 | Best speedup vs Colab C | 15.7x | **39.2x** | 14.5x | **46.5x** |
 
-### Cross-platform comparison (everything against the laptop C)
+### Cross-platform comparison (everything against Matt's laptop C)
 
 | 2²⁴, best block size | Avg time (ms) | Speedup vs laptop C (18.32 ms) | Effective bandwidth |
 |---|---|---|---|
@@ -286,7 +286,7 @@ CUDA rows use the main launch (blocks that fit on the GPU: 160 / 80 / 40 blocks)
 | 2²⁰ | 1.1758 ms | 0.3528 ms | 0.0391 ms | 9.0x faster |
 | 2²⁶ | 72.5739 ms | 30.9901 ms | 2.1094 ms | 14.7x faster |
 
-Effective bandwidth = bytes read / time = (n × 8 bytes) / time, using the formula from the lecture. The T4's theoretical memory bandwidth is 320 GB/s (lecture 2).
+Formula used: Effective bandwidth = bytes read / time = (n × 8 bytes) / time.
 
 ---
 
