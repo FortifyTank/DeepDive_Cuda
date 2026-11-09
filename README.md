@@ -68,7 +68,7 @@ __global__ void norm_kernel(const double* A, long long n, double* sum) {
 }
 ```
 
-The Euclidean norm is a **reduction**: every element adds into one sum. If every thread did `*sum += A[i] * A[i]`, threads would overwrite each other's updates (a race condition). So each thread first adds its own elements in a register, each block adds its threads' values in shared memory, and only thread 0 of each block does one `atomicAdd` into the global `sum`. The host then computes `sqrt(sum)`.
+The Euclidean norm is a **reduction** wherein every element adds into one sum. If every thread did `*sum += A[i] * A[i]`, threads would overwrite each other's updates (a race condition). So each thread first adds its own elements in a register, each block adds its threads' values in shared memory, and only thread 0 of each block does one `atomicAdd` into the global `sum`. The host then computes `sqrt(sum)`.
 
 ### Grid size: making the grid-stride loop actually loop
 
@@ -77,22 +77,22 @@ The Euclidean norm is a **reduction**: every element adds into one sum. If every
 | **Blocks that fit on the GPU** (`gridMode 1`) | SMs × resident blocks per SM (from `cudaOccupancyMaxActiveBlocksPerMultiprocessor`): **160 / 80 / 40** for block size 256 / 512 / 1024 | about 410 | All main runs |
 | **Maximum blocks** (`gridMode 0`) | `(n + blockSize - 1) / blockSize`: **65,536 / 32,768 / 16,384** | 1 | Comparison for guide question (a) |
 
-With maximum blocks there is one thread per element, so `stride ≥ n` and the grid-stride loop body runs only once. With blocks that fit on the GPU, each thread walks through about 410 elements, which is the point of a grid-stride loop.
+With maximum blocks there is one thread per element, so `stride ≥ n` and the grid-stride loop body runs only once. With blocks that fit on the GPU, each thread walks through about 410 elements, which is the point of a grid-stride loop. (we messed up in our first version since we kept getting same times)
 
 ### Memory handling per version
 
 | Version | What happens to `A` before the kernel |
 |---|---|
-| 2 Unified | `cudaMallocManaged`, filled on the **CPU**. The kernel page-faults and the pages migrate to the GPU on demand. |
+| 2 Unified | `cudaMallocManaged`, filled on the CPU. The kernel page-faults and the pages migrate to the GPU on demand. |
 | 3 Prefetch | Filled on the CPU, then `cudaMemPrefetchAsync(A, bytes, device)` moves it to the GPU before the kernel. |
-| 4 Prefetch + page creation | The empty buffer is prefetched to the GPU, then filled by a GPU kernel (`init_kernel`, also a grid-stride loop), so its pages are **created directly in GPU memory** and nothing is copied from the CPU. |
+| 4 Prefetch + page creation | The empty buffer is prefetched to the GPU, then filled by a GPU kernel (`init_kernel`, also a grid-stride loop), so its pages are created directly in GPU memory and nothing is copied from the CPU. |
 | 5 Prefetch + page creation + mem advise | Same as 4, plus `cudaMemAdviseSetPreferredLocation` = GPU (before the prefetch) and `cudaMemAdviseSetReadMostly` (after `A` is filled, since the kernel only reads it). |
 
-**Our definition of page creation:** `cudaMallocManaged` only reserves addresses; physical pages are created when memory is first touched. In Versions 4 and 5 we make the first touch happen on the GPU.
+**Page Creation:** `cudaMallocManaged` only reserves addresses; physical pages are created when memory is first touched. In Versions 4 and 5 we make the first touch happen on the GPU.
 
-**Timing:** each of the 30 runs resets `sum` with `cudaMemset` (not timed), then only the kernel is timed with CUDA events. Run 1 is also reported separately because it includes any page migration, and so is the average of runs 2–30.
+**Timing:** each of the 30 runs resets `sum` with `cudaMemset` , then only the kernel is timed with CUDA events. Run 1 is also reported separately because it includes any page migration, and so is the average of runs 2–30.
 
-**Correctness:** each CUDA result is compared to the C answer key. Because the GPU adds the numbers in a different order, the last digits can differ, so a result is `CORRECT` if the relative difference is at most 1e-9 (the same tolerance as our SIMD project). A boundary test (n = 1, 3, 1000, 1001, 1002, 1003, the same sizes as our SIMD project) checks that sizes that do not divide evenly are handled.
+**Correctness:** each CUDA result is compared to the C answer key. Because the GPU adds the numbers in a different order, the last digits can differ, so a result is `CORRECT` if the relative difference is at most 1e-9 (tolerance in our SIMD project). A boundary test (n = 1, 3, 1000, 1001, 1002, 1003, the same sizes as our SIMD project) checks that sizes that do not divide evenly are handled.
 
 ---
 
