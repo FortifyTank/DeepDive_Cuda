@@ -4,7 +4,7 @@
 
 **Group 3:** Matthew Fabregas, Kane Ibanez, Bowen Li, John Teoxon
 
-**Google Colab notebook:** [Open in Google Colab](https://colab.research.google.com/drive/1aB99_AnJZpkkZSQYR4ayNUfPiIx2kcsR?usp=sharing)
+**Google Colab notebook:** https://colab.research.google.com/drive/1aB99_AnJZpkkZSQYR4ayNUfPiIx2kcsR?usp=sharing
 
 ### Project specification (from our SIMD project)
 
