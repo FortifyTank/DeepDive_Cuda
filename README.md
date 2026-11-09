@@ -4,7 +4,7 @@
 
 **Group 3:** Matthew Fabregas, Kane Ibanez, Bowen Li, John Teoxon
 
-**Google Colab notebook:** _[paste the Colab share link here]_ (the notebook is also in this repository as `Deep_Dive_CUDA.ipynb`)
+**Google Colab notebook:** _https://colab.research.google.com/drive/1-fHUjgFFIr_MJmbnM2q4u1HPkSkK4_-A?authuser=1#scrollTo=LsC4P1TIiTsN_ (the notebook is also in this repository as `Deep_Dive_CUDA.ipynb`)
 
 ### Project specification (from our SIMD project)
 
