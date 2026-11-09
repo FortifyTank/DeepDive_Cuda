@@ -1,6 +1,6 @@
-# Deep Dive: CUDA — Euclidean Norm (C vs x86-64 vs SIMD vs CUDA Unified Memory)
+# Deep Dive: CUDA — Euclidean Norm - C vs Assembly vs SIMD vs CUDA
 
-## 0. Group Members, Specification and AI Usage
+## Group Members, Specification and AI Usage
 
 **Group 3:** Matthew Fabregas, Kane Ibanez, Bowen Li, John Teoxon
 
