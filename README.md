@@ -333,8 +333,6 @@ Prefetching is **not always** the best choice. Letting CUDA manage memory on dem
 
 Prefetching is better when the kernel reads (almost) all of the data, the access pattern is known in advance, and the data fits in GPU memory, which is exactly the case for vector operations like ours. Based on our results, Versions 4 and 5 avoided transferring the vector from the CPU to the GPU because the data was created directly on the GPU. This reduced the data transfer overhead. However, generating the vector on the GPU still took around 6 ms.
 
-Note: lecture 2 mentions that Windows does not support on-demand page migration (data is automatically prefetched). Colab runs Linux, so our Version 2 really shows the cost of on-demand page faults.
-
 ### c) Between SIMD and SIMT, which one is faster?
 
 **For the kernel alone, SIMT on the GPU is much faster.** At 2²⁴ the best CUDA version (0.525 ms) was **19x faster than YMM** (9.95 ms) and **35x faster than C** (18.32 ms) on our laptop. At 2²⁰ CUDA was 9x faster than YMM, and at 2²⁶ 14.7x faster. The GPU reads memory at about 255 GB/s; the laptop CPU running YMM reached only 13.5 GB/s.
