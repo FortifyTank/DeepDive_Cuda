@@ -214,7 +214,7 @@ Times are in milliseconds over 30 runs. The CUDA times are **kernel only**.
 
 ### Main table
 
-| 2²⁴ elements | Block size | Time avg \| min \| max (ms) | Speedup vs C (same machine) |
+| 2²⁴ elements | Block size | Time avg \| min \| max (ms) | Speedup vs C |
 |---|---|---|---|
 | C (Colab CPU, `gcc -O2`) | — | 31.2619 \| 24.6707 \| 46.3645 | 1.00x |
 | C (laptop, VS Release) | — | 18.3172 \| 17.7056 \| 21.3269 | 1.00x |
