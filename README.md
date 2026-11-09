@@ -4,7 +4,7 @@
 
 **Group 3:** Matthew Fabregas, Kane Ibanez, Bowen Li, John Teoxon
 
-**Google Colab notebook:** [Open in Google Colab](https://colab.research.google.com/drive/1jlKkSwh82QjMAwbKx7g1NU6eTsid2wBa) (the notebook, with all outputs, is also in this repository as `Deep_Dive_CUDA.ipynb`)
+**Google Colab notebook:** [Open in Google Colab](https://colab.research.google.com/drive/1aB99_AnJZpkkZSQYR4ayNUfPiIx2kcsR?usp=sharing)
 
 ### Project specification (from our SIMD project)
 
@@ -38,7 +38,7 @@ $$Z = \sqrt{\sum_{i=0}^{n-1} A_i^2}$$
 
 ### AI usage declaration
 
-We used Claude as an assistant for this project. It helped us understand the requirements, write the CUDA versions and the Colab notebook, compile-check the code, review a teammate's revision of the notebook, add the 2²⁴ size and min/max timing to our SIMD program, and draft this README from our measured results. All programs were run by our group on Google Colab and on our own laptop, and every number and screenshot in this report comes from those runs. We reviewed the code and the analysis and are responsible for the submission.
+We used Claude to assist us in our project. We noticed in some parts of the code that there are some values that don't seem to make sense, such as the grid-stride, which should vary but wasn't being implemented well. We were also confused on how page creation would be implemented and how to use NCU, so we did research via Google Search and asked Claude for help with syntax. Additionally**,** we asked it for assistance on what to expect and to theorize what the results would be, which is why we had to do multiple iterations to get a decent comparison of the different versions. All our results were run using a T4 GPU in Google Colab.
 
 ---
 
