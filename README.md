@@ -302,9 +302,8 @@ Effective bandwidth = bytes read / time = (n × 8 bytes) / time, using the formu
 
 **4. Once the data is on the GPU, Versions 3, 4 and 5 run the kernel at the same speed.** Their averages are 0.525–0.534 ms at every block size, and their ranges overlap. nsys (medians 0.528–0.533 ms) and ncu (0.544–0.553 ms at a fixed clock) agree. The kernel does the same work on the same data in GPU memory, so prefetch, page creation and mem advise only change **how and when the data gets to the GPU**, not how fast the kernel reads it afterwards. Mem advise gave no measurable gain here: our data is read once per run by the GPU and is never shared with the CPU, so there is nothing for the hints to improve.
 
-**5. The kernel is memory-bound and close to the hardware limit.** The best runs reached about **256 GB/s**, 80% of the T4's theoretical 320 GB/s, and ncu shows DRAM throughput at **93–95%** while the SMs are only about 68% busy. Each element needs 8 bytes from memory but only one multiply-add, so the GPU spends its time waiting for data, not computing. Any further speedup would need less data (for example `float` instead of `double`), not more threads.
-
-**6. Run-to-run variation.** Times can shift between program runs because the Colab GPU's clock speed changes with temperature and load (it boosts when busy and slows down when hot or idle). For example, CUDA Prefetch at block size 512 with maximum blocks took 2.56 ms, while Versions 4 and 5 took 1.86–1.87 ms in the same configuration, even though the kernel is identical. Within one run the min and avg are very close, so this is a clock effect, not a code difference. This is why we compare ranges and only call a difference real when it is larger than this noise.
+**5. The kernel is memory-bound and close to the hardware limit.** The best runs reached about **256 GB/s**, 80% of the T4's theoretical 320 GB/s, and ncu shows DRAM throughput at **93–95%** while the SMs are only about 68% busy. Each element needs 8 bytes from memory but only one multiply-add, so the GPU spends its time waiting for data, not computing. Our results show that the GPU is already using most of its memory bandwidth. Because of this, adding more threads may not improve the performance much. Other optimizations might help, but we did not test them in this project.
+**6. Run-to-run variation.** Times can shift between program runs because the Colab GPU's clock speed changes with temperature and load (it boosts when busy and slows down when hot or idle). For example, CUDA Prefetch at block size 512 with maximum blocks took 2.56 ms, while Versions 4 and 5 took 1.86–1.87 ms in the same configuration, even though the kernel is identical. Within one run the min and avg are very close, so this is a clock effect, not a code difference. We noticed that the execution time was not always the same. This might be caused by changes in GPU clock speed or other activities in Google Colab. Because of this, we compared the average, minimum, and maximum times instead of only looking at one run.
 
 ### a) How does block size affect execution time (various sizes, maximum blocks)? Which block size do we recommend?
 
@@ -332,7 +331,7 @@ Prefetching is **not always** the best choice. Letting CUDA manage memory on dem
 - **The CPU and GPU take turns working on the same data in small pieces.** Prefetching back and forth every time can cost more than letting only the touched pages move.
 - **Simplicity matters more than speed,** such as in a prototype or a program that runs once on a small array.
 
-Prefetching is better when the kernel reads (almost) all of the data, the access pattern is known in advance, and the data fits in GPU memory, which is exactly the case for vector operations like ours. Best of all, as Versions 4 and 5 show, is to **create the data on the GPU** when possible, so it never has to cross the PCIe bus.
+Prefetching is better when the kernel reads (almost) all of the data, the access pattern is known in advance, and the data fits in GPU memory, which is exactly the case for vector operations like ours. Based on our results, Versions 4 and 5 avoided transferring the vector from the CPU to the GPU because the data was created directly on the GPU. This reduced the data transfer overhead. However, generating the vector on the GPU still took around 6 ms.
 
 Note: lecture 2 mentions that Windows does not support on-demand page migration (data is automatically prefetched). Colab runs Linux, so our Version 2 really shows the cost of on-demand page faults.
 
@@ -340,8 +339,7 @@ Note: lecture 2 mentions that Windows does not support on-demand page migration 
 
 **For the kernel alone, SIMT on the GPU is much faster.** At 2²⁴ the best CUDA version (0.525 ms) was **19x faster than YMM** (9.95 ms) and **35x faster than C** (18.32 ms) on our laptop. At 2²⁰ CUDA was 9x faster than YMM, and at 2²⁶ 14.7x faster. The GPU reads memory at about 255 GB/s; the laptop CPU running YMM reached only 13.5 GB/s.
 
-**But it depends on where the data starts.** If the data is created on the CPU and used only once, the GPU must first receive 128 MB over PCIe. In our Unified version, the first run (with the migration) took 29.8 ms, which is **slower than plain C on the laptop (18.32 ms)** and 3x slower than YMM. Even with prefetch, moving the data took 11.1 ms, which is longer than YMM needed to compute the whole answer (9.95 ms). For a simple kernel that does very little math per element, moving the data can cost more than the speed gained.
-
+**But it depends on where the data starts.** If the data is created on the CPU and used only once, the GPU must first receive 128 MB over PCIe. In our Unified version, the first run (with the migration) took 29.8 ms, which is **slower than plain C on the laptop (18.32 ms)** and 3x slower than YMM. Even with prefetch, moving the data took 11.1 ms, which is longer than YMM needed to compute the whole answer (9.95 ms).In our Euclidean norm project, each element only needs to be squared and added to the sum. We found that transferring a large vector to the GPU can take more time than computing the result using CPU SIMD. This means using CUDA is not always faster, especially when the data is only used once.
 SIMD (CPU) is better when:
 - the data is already in CPU memory and is used once, as in a single norm of a freshly computed vector;
 - the vector is small (at 2²⁰ elements, YMM took only 0.35 ms, much less than a GPU transfer plus kernel launch);
@@ -380,7 +378,7 @@ From slowest to fastest kernel time at 2²⁴: Colab C (31.3 ms) → x86-64 (23.
 - **Fewer blocks made the kernel faster.** We expected launching one thread per element (the most parallelism) to be fastest, but launching only the 160 blocks that fit on the GPU was 2.8x faster, because each thread's reduction and atomic overhead is shared over 410 elements.
 - **Block size stopped mattering once the launch was right.** With maximum blocks, 1024 was up to 2x slower than 256. With blocks that fit on the GPU, 256, 512 and 1024 were within 2% of each other.
 - **Faults vs prefetch is about transfer size.** Both moved about the same 132–134 MB, but on-demand faults used 7,569 small transfers at 4.6 GB/s, while prefetch used 64 transfers of 2 MB at 12.0 GB/s.
-- **The fastest transfer is no transfer.** Creating the data on the GPU removed all Host-to-Device traffic, and the GPU filled the whole vector in about 6 ms.
+- **The fastest transfer is no transfer.** We found that creating the data directly on the GPU was useful because we did not need to transfer the vector from the CPU. The GPU took around 6 ms to initialize the data.
 - **Moving the data can cost more than computing it.** The 128 MB transfer to the GPU (11–29 ms) took longer than YMM needed to compute the whole norm on the CPU (9.9 ms). The GPU only wins when the data is already there or is reused.
 - **Both CPU and GPU are limited by memory, at very different speeds.** On the CPU, wider SIMD barely helped because RAM was the bottleneck (13.5 GB/s). On the GPU, ncu showed 95% DRAM use, so the kernel runs at about 255 GB/s, and adding threads cannot make it faster.
 
@@ -408,4 +406,4 @@ From slowest to fastest kernel time at 2²⁴: Colab C (31.3 ms) → x86-64 (23.
 | **Bottleneck in our results** | Memory bandwidth (13.5 GB/s) | Memory bandwidth (about 255 GB/s, 95% DRAM use) |
 | **Hardware needed** | Any modern x86-64 CPU | An NVIDIA GPU |
 
-**Summary:** SIMD is simple, has no transfer cost, and is the better choice for a one-off norm of data that is already in CPU memory, especially for small vectors. SIMT gives a much faster kernel and scales far better, so it is the better choice when the data is already on the GPU, can be created there, or is reused many times, so the transfer cost is paid only once.
+**Summary:** Based on our tests, SIMD is a good choice for smaller data because it does not need to transfer data to the GPU. CUDA is faster when the data is already on the GPU, especially for larger vectors, so it is the better choice when the data is already on the GPU, can be created there, or is reused many times, so the transfer cost is paid only once.
