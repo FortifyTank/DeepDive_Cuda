@@ -68,7 +68,7 @@ __global__ void norm_kernel(const double* A, long long n, double* sum) {
 }
 ```
 
-The Euclidean norm is a **reduction** wherein every element adds into one sum. If every thread did `*sum += A[i] * A[i]`, threads would overwrite each other's updates (a race condition). So each thread first adds its own elements in a register, each block adds its threads' values in shared memory, and only thread 0 of each block does one `atomicAdd` into the global `sum`. The host then computes `sqrt(sum)`.
+The Euclidean norm is a reduction wherein every element adds into one sum. If every thread did `*sum += A[i] * A[i]`, threads would overwrite each other's updates (a race condition). So each thread first adds its own elements in a register, each block adds its threads' values in shared memory, and only thread 0 of each block does one `atomicAdd` into the global `sum`. The host then computes `sqrt(sum)`.
 
 ### Grid size: making the grid-stride loop actually loop
 
@@ -146,7 +146,7 @@ With maximum blocks there is one thread per element, so `stride ≥ n` and the g
 
 ![SIMD output](screenshots/simd_output.png)
 
-Every version printed `correct` / `CORRECT` at every size, block size and launch. All CUDA versions gave Z = 2896.2749920236 at 2²⁴ against the C answer key 2896.2749920235, a relative difference of about 4e-14. The boundary test matched C for all six sizes.
+Every version printed `correct` at every size, block size and launch. All CUDA versions gave Z = 2896.2749920236 at 2²⁴ against the C answer key 2896.2749920235, a very small and acceptable difference. The boundary test matched C for all six sizes.
 
 ---
 
@@ -188,7 +188,7 @@ For each version, the screenshot shows the kernel summary (`cuda_gpu_kern_sum`) 
 | `init_kernel` on GPU | — | — | 6.11 ms (once) | 5.89 ms (once) |
 | `norm_kernel` median (30 runs) | 0.536 ms | 0.533 ms | 0.528 ms | 0.528 ms |
 
-(nsys reports "SKIPPED … does not contain GPU page faults data" for Versions 3–5 because there were no GPU page faults to record.)
+There was a popup from nsys that says "SKIPPED … does not contain GPU page faults data" for Versions 3–5 because there were no GPU page faults to record.
 
 ### Nsight Compute (ncu)
 
@@ -202,9 +202,9 @@ ncu profiled one `norm_kernel` launch (2²⁴, block size 256, 160 blocks) for e
 | Duration | 0.544 – 0.553 ms |
 | DRAM throughput | **93.2 – 95.2 %** |
 | Compute (SM) throughput | 67.5 – 67.9 % |
-| Achieved occupancy | about 100 % (theoretical 100 %) |
+| Achieved occupancy | about 100 % |
 
-The kernel keeps the GPU memory almost fully busy, so it is **memory-bound**: it runs about as fast as the T4 can read 128 MB. (ncu fixes the SM clock at 585 MHz, so its durations are a little longer than our benchmark times.)
+The kernel keeps the GPU memory almost fully busy, so it is memory-bound: it runs about as fast as the T4 can read 128 MB. (ncu fixes the SM clock at 585 MHz, so its durations are a little longer than our benchmark times.)
 
 ---
 
