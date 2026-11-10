@@ -363,7 +363,7 @@ From slowest to fastest kernel time at 2²⁴: Colab C (31.3 ms) → x86-64 (23.
 
 ---
 
-## v. Problems Encountered, Solutions and AHA Moments
+## V. Problems Encountered, Solutions and AHA Moments
 
 - Our first grid-stride loop didn't actually loop. For our first version, we launched (n + blockSize - 1) / blockSize blocks (only one thread per element). This meant our stride = n, so every single thread just ran the loop body exactly once. It technically worked, but it didn't really take advantage of the grid-stride loop. Additionally we had 65,536 blocks all trying to do their own reduction and atomicAdd. Kane caught this while looking over the notebook. Our solution is that we changed it to only launch the exact number of blocks that can fit on the GPU at once (using SMs × resident blocks per SM, which we got from cudaOccupancyMaxActiveBlocksPerMultiprocessor). Doing it this way means each thread actually loops over about 410 elements. This made the kernel 2.8x faster (dropping from 1.49 ms to 0.53 ms at a 256 block size) and our bandwidth shot up from 90 GB/s to 255 GB/s. We kept the old launch setup around to use as a comparison for guide question (a).
 - The norm is a reduction, which is a lot harder to do on a GPU. If we just did a simple *sum += A[i] * A[i] in every thread, we'd get a massive race condition. And if we tried using an atomicAdd for every single element, it would serialize 16.7 million updates which would completely tank performance. The solution for this is that we set it up so each thread adds its own elements into a local register first. Then, each block adds up all its threads' values inside shared memory, and we only send one atomicAdd per block out to global memory.   
@@ -385,7 +385,7 @@ From slowest to fastest kernel time at 2²⁴: Colab C (31.3 ms) → x86-64 (23.
 
 ---
 
-## vi. SIMD vs SIMT
+## VI. SIMD vs SIMT
 
 ### How each one handles parallelism in our project
 
