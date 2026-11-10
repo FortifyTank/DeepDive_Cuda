@@ -96,7 +96,7 @@ With maximum blocks there is one thread per element, so `stride ≥ n` and the g
 
 ---
 
-## i. Program Output (correctness check and execution time)
+## I. Program Output (correctness check and execution time)
 
 ### C program (Version 1)
 
@@ -150,7 +150,7 @@ Every version printed `correct` at every size, block size and launch. All CUDA v
 
 ---
 
-## ii. Nsight Systems (nsys) — all CUDA versions (2²⁴, block size 256, blocks that fit on the GPU)
+## II. Nsight Systems (nsys) — all CUDA versions (2²⁴, block size 256, blocks that fit on the GPU)
 
 For each version, the screenshot shows the kernel summary (`cuda_gpu_kern_sum`) and the memory transfer summaries (`cuda_gpu_mem_time_sum` / `cuda_gpu_mem_size_sum`). Version 2 also shows the Unified Memory totals (`um_total_sum`).
 
@@ -208,7 +208,7 @@ ncu profiled one `norm_kernel` launch (2²⁴, block size 256, 160 blocks) for e
 
 ---
 
-## iii. Comparative Table of Execution Time (2²⁴ elements)
+## III. Comparative Table of Execution Time (2²⁴ elements)
 
 Times are in milliseconds over 30 runs. The CUDA times are kernel only.
 
@@ -290,7 +290,7 @@ Formula used: Effective bandwidth = bytes read / time = (n × 8 bytes) / time.
 
 ---
 
-## iv. Analysis of Results
+## IV. Analysis of Results
 
 ### Kernel execution time
 
