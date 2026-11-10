@@ -354,10 +354,10 @@ SIMT (GPU) is better when:
 
 From slowest to fastest kernel time at 2²⁴: Colab C (31.3 ms) → x86-64 (23.1 ms) → laptop C (18.3 ms) → XMM (10.9 ms) → YMM (9.9 ms) → CUDA Unified (1.43–1.50 ms average, but 28–30 ms in run 1) → CUDA Prefetch / page creation / mem advise (0.525–0.534 ms).
 
-- **C on two machines:** the same C code took 31.3 ms on Colab's CPU but 18.3 ms on Matt's laptop, and the Colab times were noisy (24.7–46.4 ms) because the Colab CPU is shared. This is why we compare each version with C on its own machine.
-- **x86-64 vs C:** in Release mode the compiler keeps `i` and `sum` in registers just like our hand-written assembly, so x86-64 and C are about tied. At 2²⁰ and 2²⁶ they were within 2%, and x86-64's best run at 2²⁴ (18.57 ms) matched C. Its 2²⁴ average (23.1 ms) was pulled up by a few runs interrupted by other programs on the laptop (max 66.7 ms).
-- **XMM and YMM** were 1.69x and 1.84x faster than C, below the theoretical 2x and 4x, because the CPU kernel is limited by memory speed (YMM read at only 13.5 GB/s).
-- **CUDA** was about 35x faster than laptop C for the kernel itself. Both the CPU SIMD versions and the GPU are limited by memory speed, but the T4's memory is about 19x faster than what one CPU core can read.
+- C on two machines: The exact same C code took 31.3 ms on Colab's CPU and only 18.3 ms on Matt's laptop. The Colab times were also noisy just because we're sharing that CPU with other people. That is why we made sure to only compare each version against the C baseline on its own specific machine.
+- We also compared assembly and C. Since we ran them in Release mode, the compiler is smart enough to keep i and sum in registers just like we did in our assembly, so x86-64 and C tied. At the 2²⁰ and 2²⁶ sizes, they were within 2% of each other, and x86-64's best run at 2²⁴ (18.57 ms) matched C. Its 2²⁴ average (23.1 ms) only looked worse because a few runs got slowed down by background processes running on the laptop.
+-  XMM and YMM: These ended up being 1.69x and 1.84x faster than plain C. We didn't hit those theoretical 2x and 4x speedups mostly because the CPU kernel just gets bottlenecked by memory speed (YMM was only reading at about 13.5 GB/s).
+- CUDA is about 35x faster in the C program test than Matt's laptop. Both the CPU SIMD versions and the GPU are limited by memory speed, but the T4 GPU's memory is just 19x faster than what a single CPU core can read.
 
 ---
 
